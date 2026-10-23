@@ -1,6 +1,18 @@
-# Hayate
+<p align="center">
+  <img src="docs/brand/wordmark.svg" width="800" alt="HAYATE · 颯 · ハヤテ · pronounced hah-yah-teh · Swift as the wind.">
+</p>
 
-A lighter touch for Android. Six letter keys, all 26 letters, and short directional flicks.
+<p align="center">
+  <a href="https://github.com/farhanakhtar0x66/hayate/actions/workflows/android.yml"><img src="https://github.com/farhanakhtar0x66/hayate/actions/workflows/android.yml/badge.svg" alt="Android build and tests"></a>
+  <a href="https://github.com/farhanakhtar0x66/hayate/releases/latest"><img src="https://img.shields.io/github/v/release/farhanakhtar0x66/hayate?color=d8c6fa" alt="Latest release"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-d8c6fa" alt="MIT license"></a>
+  <img src="https://img.shields.io/badge/Android-8.0%2B-a6e3a1" alt="Android 8.0 or newer">
+  <a href="PRIVACY.md"><img src="https://img.shields.io/badge/privacy-offline-a6e3a1" alt="Offline, no network permission"></a>
+</p>
+
+<p align="center"><strong>Six letter keys. All 26 letters. A lighter touch for Android.</strong><br>
+Hayate <strong>(hah-yah-teh)</strong> · 颯 · ハヤテ<br>
+<a href="https://github.com/farhanakhtar0x66/hayate/releases/latest">Download for Android</a> · <a href="#type">Learn to flick</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 
 Hayate is a small, offline Android keyboard inspired by the HoneyKey Latin layout. Tap a large letter or flick toward a smaller one. It is a real Android input method, usable across apps.
 
@@ -84,3 +96,7 @@ Version 0.2 is an English directional flick keyboard. It does not implement QWER
 Suggestions reuse **JSymSpell by Raul Garcia**, based on **SymSpell by Wolf Garbe**, rather than a new correction algorithm. The bundled frequency list is a 30,000-entry subset of SymSpell’s English dictionary, derived from Google Books Ngram and SCOWL. Clipboard uses Android’s platform `ClipboardManager`. See [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt) for licenses, provenance and exact dictionary revision; these notices are also bundled in the APK under Credits → Licenses.
 
 Hayate’s app implementation and branding are original. This independent project is not affiliated with or endorsed by HoneyKey, Google, or the engine authors. No personal email macro from the reference was included.
+
+## License
+
+Hayate’s original code and branding are released under the [MIT License](LICENSE). Third-party code and dictionary data retain their respective licenses; see [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt). HoneyKey layout inspiration is credited above.
