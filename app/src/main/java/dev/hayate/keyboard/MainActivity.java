@@ -38,6 +38,7 @@ public final class MainActivity extends Activity {
     private EditText practice;
     private String practiceText = "";
     private KeyboardView keyboard;
+    private KeyboardSession session;
     private boolean renderedEnabled, renderedSelected;
     private final KeyboardState state = new KeyboardState();
 
@@ -47,9 +48,11 @@ public final class MainActivity extends Activity {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
         preferences = new Preferences(this);
     }
-    @Override protected void onResume() { super.onResume(); render(); }
+    @Override protected void onResume() { super.onResume(); HayateIme.hideForPractice(); render(); }
+    @Override protected void onPause() { if (session != null) session.stop(); super.onPause(); }
     @Override public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) HayateIme.hideForPractice();
         // The system keyboard picker is a dialog; closing it need not call onResume.
         if (hasFocus && practice != null && (isEnabled() != renderedEnabled || isSelected() != renderedSelected)) render();
     }
@@ -80,6 +83,7 @@ public final class MainActivity extends Activity {
     }
 
     private void render() {
+        if (session != null) { session.stop(); session = null; }
         if (practice != null) practiceText = practice.getText().toString();
         palette = new Palette(this, preferences);
         LinearLayout root = column(); root.setBackgroundColor(palette.background);
@@ -143,7 +147,7 @@ public final class MainActivity extends Activity {
         practice = new EditText(this); practice.setId(R.id.practice); practice.setTextSize(28); practice.setTextColor(palette.ink);
         practice.setHintTextColor(palette.muted); practice.setHint("Say hello…");
         practice.setPadding(dp(16), dp(12), dp(16), dp(12)); practice.setGravity(Gravity.TOP | Gravity.START);
-        practice.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        practice.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         practice.setShowSoftInputOnFocus(false); practice.setBackground(rounded(palette.surface, dp(16)));
         practice.setMinLines(1); practice.setMaxLines(3); practice.setText(practiceText); practice.setSelection(practice.length());
         practice.setSaveEnabled(false); practice.setContentDescription("Practice typing. Text is not saved.");
@@ -152,15 +156,23 @@ public final class MainActivity extends Activity {
         tip.setPadding(dp(2), dp(4), dp(2), dp(4)); content.addView(tip, new LinearLayout.LayoutParams(-1, dp(38)));
         practice.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
-            public void onTextChanged(CharSequence s, int start, int before, int count) { practiceText = s.toString(); tip.setText(practiceTip()); }
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                practiceText = s.toString(); tip.setText(practiceTip()); if (session != null) session.update();
+            }
             public void afterTextChanged(Editable s) { }
         });
-        keyboard = new KeyboardView(this, state, this::practiceAction);
+        session = new KeyboardSession(this, state, () -> practice.onCreateInputConnection(new EditorInfo()), this::practiceEditor, this::showSettings,
+            () -> Toast.makeText(this, "In your keyboard, this opens the Android keyboard picker.", Toast.LENGTH_SHORT).show());
+        keyboard = session.keyboard;
         content.addView(keyboard, new LinearLayout.LayoutParams(-1, -2));
         gap(content, 12);
         TextView privacy = text("Your words stay on your device.", 12, palette.muted); privacy.setGravity(Gravity.CENTER);
         content.addView(privacy);
+        TextView credit = text("Inspired by HoneyKey · u/thefizzynator", 12, palette.muted);
+        credit.setGravity(Gravity.CENTER); credit.setOnClickListener(v -> showCredits()); credit.setFocusable(true);
+        content.addView(credit, new LinearLayout.LayoutParams(-1, dp(44)));
         practice.requestFocus();
+        session.start();
     }
 
     private void setupRow(LinearLayout parent, String number, String title, String subtitle, String action, Runnable callback, boolean accent) {
@@ -194,19 +206,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private void practiceAction(KeySpec.Value value) {
-        if (value.kind == KeySpec.Kind.LAYER) { state.switchLayer(KeyboardState.Layer.valueOf(value.text)); keyboard.rebuild(); return; }
-        if (value.kind == KeySpec.Kind.SHIFT) { state.toggleShift(); keyboard.refresh(); return; }
-        if (value.kind == KeySpec.Kind.SETTINGS) { showSettings(); return; }
-        if (value.kind == KeySpec.Kind.NEXT_KEYBOARD) {
-            Toast.makeText(this, "In your keyboard, this opens the Android keyboard picker.", Toast.LENGTH_SHORT).show(); return;
-        }
-        practice.requestFocus();
-        EditorInfo editor = new EditorInfo();
-        InputConnection connection = practice.onCreateInputConnection(editor);
-        InputActions.execute(connection, editor, value, state.output(value));
-        keyboard.refresh();
-    }
+    private EditorInfo practiceEditor() { EditorInfo info = new EditorInfo(); practice.onCreateInputConnection(info); return info; }
 
     private void showGuide() {
         dialog().setTitle("Small moves. All 26 letters.")
@@ -238,8 +238,33 @@ public final class MainActivity extends Activity {
         Switch haptics = new Switch(this); haptics.setText("Gentle haptics"); haptics.setTextSize(16); haptics.setTextColor(palette.ink);
         haptics.setChecked(preferences.haptics()); haptics.setOnCheckedChangeListener((view, checked) -> preferences.haptics(checked));
         panel.addView(haptics, new LinearLayout.LayoutParams(-1, dp(56)));
-        gap(panel, 8); panel.addView(text("Hayate 0.1.1\nNo network access. No typing history.\nEnglish directional flick keyboard.", 12, palette.muted));
-        AlertDialog settings = dialog().setTitle("Your Hayate").setView(panel).setPositiveButton("Done", null).create();
+        Switch suggestions = new Switch(this); suggestions.setText("Offline word suggestions"); suggestions.setTextColor(palette.ink);
+        suggestions.setChecked(preferences.suggestions()); suggestions.setOnCheckedChangeListener((v, enabled) -> preferences.suggestions(enabled));
+        panel.addView(suggestions, new LinearLayout.LayoutParams(-1, dp(56)));
+        panel.addView(button("Credits & open source", this::showCredits, false), new LinearLayout.LayoutParams(-1, dp(48)));
+        gap(panel, 8); panel.addView(text("Hayate 0.2.0\nNo network access. No typing history.\nRecent clips are optional and memory only.", 12, palette.muted));
+        ScrollView scroll = new ScrollView(this); scroll.addView(panel);
+        AlertDialog settings = dialog().setTitle("Your Hayate").setView(scroll).setPositiveButton("Done", null).create();
         settings.setOnDismissListener(ignored -> render()); settings.show();
+    }
+    private void showCredits() {
+        dialog().setTitle("Built on good ideas")
+            .setMessage("HoneyKey Latin layout\nCreated by u/thefizzynator.\n\nHayate’s letter arrangement and directional flicks are inspired by their original smartphone keyboard design. Thank you for sharing it.\n\nOffline suggestions use JSymSpell by Raul Garcia, based on SymSpell by Wolf Garbe. The English dictionary uses SymSpell’s Google Books Ngram / SCOWL frequency list.\n\nClipboard uses Android’s system clipboard. Hayate is an independent project.")
+            .setPositiveButton("Original post", (d, w) -> {
+                Intent original = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://www.reddit.com/r/KeyboardLayouts/comments/no9sbc/i_designed_a_keyboard_layout_for_smartphones/"));
+                try { startActivity(original); } catch (android.content.ActivityNotFoundException ignored) { Toast.makeText(this, "No browser installed", Toast.LENGTH_SHORT).show(); }
+            }).setNeutralButton("Licenses", (d, w) -> showLicenses()).setNegativeButton("Close", null).show();
+    }
+    private void showLicenses() {
+        String notices;
+        try (java.io.InputStream stream = getAssets().open("THIRD_PARTY_NOTICES.txt")) {
+            java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            for (int count; (count = stream.read(buffer)) != -1;) bytes.write(buffer, 0, count);
+            notices = bytes.toString("UTF-8");
+        } catch (java.io.IOException ignored) { notices = "License notices are available in the Hayate repository."; }
+        TextView contents = text(notices, 12, palette.ink); contents.setPadding(dp(24), dp(12), dp(24), dp(12));
+        contents.setTextIsSelectable(true); ScrollView scroll = new ScrollView(this); scroll.addView(contents);
+        dialog().setTitle("Open-source licenses").setView(scroll).setPositiveButton("Done", null).show();
     }
 }

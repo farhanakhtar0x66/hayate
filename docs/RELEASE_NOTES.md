@@ -1,18 +1,10 @@
-# Hayate 0.1.1
+# Hayate 0.2.0
 
-Initial Android release of Hayate, a minimal, offline directional flick keyboard inspired by HoneyKey Latin.
+- Offline English suggestion row: word completion and spelling alternatives powered by the existing MIT-licensed JSymSpell engine. Tap to accept; no silent autocorrect or personal learning.
+- Clipboard panel using Android’s system clipboard, with optional recent clips (off by default, ten maximum, memory only, one-hour expiry). Sensitive clips have hidden previews and are excluded from history. Password fields hide the panel.
+- Programmer mode: familiar letter flicks, straight punctuation, coding symbols/operators, paired delimiters, four-space indent, literal Tab, Home/End, and newline indentation. Suggestions and automatic capitalization pause while it is enabled.
+- Credit to HoneyKey designer **u/thefizzynator**, with a link to the original post in the app and README. Engine/dictionary notices are bundled under Credits → Licenses.
 
-Patch 0.1.1 keeps Android’s system keyboard closed in the embedded practice area when returning from another app.
+Install `hayate-0.2.0.apk` over the previous release. It uses the same signing key and keeps your preferences. Android 8.0 or newer is required.
 
-- Six letter clusters with tap and cardinal flick entry.
-- Numbers, symbols, editing, and curated emoji layers.
-- Shift/caps lock, repeat delete, Unicode-aware deletion and cursor movement, editor-aware return, and space dragging.
-- Native setup, interactive practice and character-choice popups.
-- Light, dark and system themes; adjustable haptics, key height and flick distance.
-- No runtime dependencies, network permission, analytics or typing history.
-
-Install `hayate-0.1.1.apk`, open Hayate, enable it in Android settings, and choose it as your keyboard. Android 8.0 or newer is required.
-
-This prerelease is signed with a private local release key. It is an installable APK, not a Play Store publication. English flick typing is supported; QWERTY word-glide, prediction and autocorrect are not included.
-
-Validation: 17 unit tests and 12 Android device tests. The signed release was also used as the active keyboard in Android Settings, with light/dark and orientation checks. Physical-device latency and battery use have not been benchmarked.
+This remains an English directional flick keyboard. Suggestions are completion/correction choices, without next-word prediction, Gboard integration, or IDE code completion. Clipboard access, tabs, cursor actions and selection support can vary by host app. No network permission, analytics, typing history, or persistent clipboard storage. Physical-device typing latency and battery use have not been benchmarked.

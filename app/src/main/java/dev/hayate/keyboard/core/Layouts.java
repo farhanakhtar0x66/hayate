@@ -56,9 +56,15 @@ public final class Layouts {
             case SYMBOLS: return SYMBOL;
             case EDIT: return EDITING;
             case EMOJI: return EMOJIS;
+            case CODE: return CODE_KEYS;
             default: return LATIN;
         }
     }
+    private static final KeySpec[][] CODE_KEYS = {
+        {ABC, letters("{", "(", "[", ")", "]"), letters("}", "<", ">", "=", "!"), letters("_", "/", "\\", "|", "&"), letters("\"", "'", "`", ":", ";"), DELETE},
+        {LEFT_KEY, letters("=", "+", "-", "*", "/"), SPACE_KEY, letters(";", ":", ",", ".", "?"), RIGHT_KEY},
+        {simple(INDENT, "4 sp"), simple(TAB, "Tab"), letters("#", "$", "@", "%", "^"), simple(HOME, "Home"), simple(END, "End"), ENTER}
+    };
     private static KeySpec letters(String center, String left, String up, String right, String down) {
         return new KeySpec(1, true, t(center), t(left), t(up), t(right), t(down));
     }

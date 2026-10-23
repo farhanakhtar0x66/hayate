@@ -30,9 +30,9 @@ export HAYATE_SIGNING_PASSWORD="$(cat .signing/password)"
 "$HAYATE_BUILD_TOOLS/zipalign" -f -p 4 app/build/outputs/apk/release/app-release-unsigned.apk dist/hayate-aligned.apk
 "$HAYATE_BUILD_TOOLS/apksigner" sign --ks .signing/hayate-release.p12 --ks-key-alias hayate \
     --ks-pass env:HAYATE_SIGNING_PASSWORD --key-pass env:HAYATE_SIGNING_PASSWORD \
-    --out dist/hayate-0.1.1.apk dist/hayate-aligned.apk
+    --out dist/hayate-0.2.0.apk dist/hayate-aligned.apk
 unset HAYATE_SIGNING_PASSWORD
 rm dist/hayate-aligned.apk
-"$HAYATE_BUILD_TOOLS/apksigner" verify --verbose dist/hayate-0.1.1.apk
-(cd dist && shasum -a 256 hayate-0.1.1.apk > SHA256SUMS)
-echo 'Signed dist/hayate-0.1.1.apk. Keep .signing/ backed up securely for future updates.'
+"$HAYATE_BUILD_TOOLS/apksigner" verify --verbose dist/hayate-0.2.0.apk
+(cd dist && shasum -a 256 hayate-0.2.0.apk > SHA256SUMS)
+echo 'Signed dist/hayate-0.2.0.apk. Keep .signing/ backed up securely for future updates.'

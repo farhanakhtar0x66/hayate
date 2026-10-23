@@ -1,45 +1,49 @@
-# Hayate 0.1.1 validation
+# Hayate 0.2.0 validation
 
 Verified on 24 October 2026 (Asia/Kolkata).
 
 | Check | Result |
 | --- | --- |
-| JVM unit tests | 17 passed |
-| Android instrumented tests | 12 passed, 0 skipped |
-| Android lint | 0 errors; 14 warnings |
+| JVM unit tests | 21 passed |
+| Android instrumented tests | 21 passed, 0 skipped |
+| Android lint | 0 errors; 15 warnings |
 | Debug and optimized release builds | Passed |
-| APK signing | v2 and v3 signature verification passed |
-| APK size | 33,523 bytes |
-| Runtime dependencies | None |
-| Requested app permissions | None (confirmed from the packaged manifest) |
+| APK signing | v2 and v3 verification passed; same certificate as 0.1.1 |
+| APK size | 291,711 bytes |
+| Runtime dependencies | JSymSpell 1.0, MIT, no transitive runtime libraries |
+| Requested app permissions | None, confirmed from packaged manifest |
 | System keyboard | Signed release enabled and selected in Android Settings |
-| Real touch input | Typed hello into Android Settings using Hayate’s flick keys |
-| Visual review | Light/dark portrait and dark landscape screenshots reviewed |
+| Real input | Flick-typed `wurld`, tapped the `world` suggestion, verified `world ` in the host field |
+| Clipboard | Copied through editing layer and opened the system clip in the new panel |
+| Programmer mode | Wrapped selected text using the paired-delimiter shortcut; straight punctuation and code tools reviewed |
+| Visual review | Light/dark portrait, landscape, clipboard, programmer and credits screens |
 
-Final verification command:
+Final verification:
 
 ```sh
 ./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleRelease :app:connectedDebugAndroidTest
 ```
 
-The unit tests cover all 26 letters, the supplied example flicks, direction thresholds, layer escape/delete controls, all digits, shift/caps behavior, and common Unicode deletion cases. Device tests exercise real key Views and EditText InputConnections: hello, shift/caps, numbers, selected/emoji deletion, cancellation, multiple pointers, repeat delete, space dragging, multiline return, Search, grapheme-safe cursor movement followed by deletion, and long-press character choices.
+The original 17 unit and 12 device gesture/typing tests continue to pass. Added tests cover JSymSpell typo candidates, prefix completion and case; whole-word boundaries; clipboard deduplication, bounds and expiry; safe candidate insertion and stale context rejection; selected-text pairing with UTF-16 offsets and unsupported selected-text queries; password/no-suggestion policy; system clipboard/sensitive clip exclusion; real visible suggestions; straight code punctuation; indentation, pairing shortcuts and capitalization restoration on leaving code mode.
 
-Both review regressions were confirmed with a mutation run: reverting grapheme movement and disabling physical long press produced exactly two failures out of twelve. Restoring the fixes produced twelve passes. The popup was also checked with real pointer input and used to commit x.
+The selected-text-query regression was observed failing with `(name)` replaced by `()` before the fix. The code-mode capitalization regression was observed failing with lowercase `e` where `E` was requested; both pass after correction. A read-only review verified the selected-text and API 26 cleanup fixes. The clipboard expiration timer removes history even when panels are hidden and refreshes open shelves.
 
-The signed release was checked outside the practice area. System navigation controls have separate space below the bottom key row, including after theme and orientation changes. The setup status refreshes when the keyboard picker closes. Patch 0.1.1 makes the practice window independent of Android’s IME, so returning from another app cannot put the system keyboard over its local keyboard.
+Manual lifecycle regression: show Hayate in Android Settings search, then return to MainActivity. An already visible IME could remain bound to Settings despite the practice window’s ALT_FOCUSABLE_IM flag. The live service now requests hide when practice resumes or gains focus. Verified `mInputShown=true` in Settings followed by `mInputShown=false` in Hayate, and reviewed the embedded keyboard without the system IME covering it. Return labels show a newline in programmer mode.
 
-Environment: macOS arm64; JDK 21; Gradle 9.5.0; AGP 9.2.1; compile/target API 36. Android emulator: API 37 / Android 17, arm64 16 KB-page Google Play image, 1080 × 2400 portrait / 2400 × 1080 landscape at 420 dpi. Transient ADB transport and signed/debug installation conflicts were resolved before the final passing run.
+The APK bundles a 30,000-entry subset of the pinned upstream English dictionary. Its contents were compared against the recorded SymSpell revision. JSymSpell and dictionary notices are included in the app and repository. No personal dictionary or typing log is stored.
 
-Lint warnings are limited to pinned tool/SDK version suggestions, the deliberately programmatic custom View constructor, and English-only UI strings. The built-in Kotlin opt-out emits a build-tool deprecation warning; the pinned Android plugin supports it.
+Environment: macOS arm64; JDK 21; Gradle 9.5.0; AGP 9.2.1; compile/target API 36. Emulator: API 37 / Android 17, arm64 16 KB-page Google Play image, 1080 × 2400 portrait / 2400 × 1080 landscape at 420 dpi. Minimum API 26 platform compatibility is checked by lint; device tests use the same clipboard-clearing fallback as production on API 26–27.
 
-Physical devices, Android 8–16 hardware, TalkBack end-to-end navigation, battery usage and typing latency have not been benchmarked or fully exercised. Minimum API 26 is declared and platform API usage is checked by lint. The accessibility long-click path and tappable popup are implemented; the device test exercises popup selection via Android’s accessibility API. This is an early usable release, not a comparative performance result.
+Lint warnings concern pinned tool/SDK versions, backup configuration metadata (backup is disabled), the programmatic custom View constructor, and English-only UI strings. The pinned plugin’s Kotlin opt-out emits a deprecation warning. Instrumentation reports that per-test logcat could not be collected; all device cases completed with zero failures.
 
-SHA-256 of the shipped APK:
+Physical-device typing latency, battery use, TalkBack end-to-end navigation, and every Android 8–16 device/editor combination have not been measured or fully exercised. This is an early usable release, without comparative speed claims or next-word prediction.
+
+SHA-256:
 
 ```text
-941cf46e4c00fec99ee2e2d7b63dd00c63050708fc458d2d84800f3da87a4830
+00ec871b99312558658a8a089e7c6ba4c414725b5840ea53b896b2aa4c73bfe7
 ```
 
-Screenshots: [setup](screenshots/setup.png), [light keyboard](screenshots/keyboard-light.png), [dark keyboard](screenshots/keyboard-dark.png), [landscape](screenshots/keyboard-landscape.png).
+Screenshots: [practice](screenshots/setup.png), [suggestions](screenshots/keyboard-light.png), [dark](screenshots/keyboard-dark.png), [landscape](screenshots/keyboard-landscape.png), [clipboard](screenshots/clipboard.png), [programmer](screenshots/programmer.png), [credits](screenshots/credits.png).
 
-Published to the private [GitHub repository](https://github.com/farhanakhtar0x66/hayate). [Release v0.1.1](https://github.com/farhanakhtar0x66/hayate/releases/tag/v0.1.1) contains the signed APK and checksum; the uploaded asset digest matches the local SHA-256 above.
+Release target: the existing private [GitHub repository](https://github.com/farhanakhtar0x66/hayate), signed APK and checksum under v0.2.0.

@@ -18,6 +18,9 @@ final class InputActions {
         switch (value.kind) {
             case TEXT: connection.commitText(text, 1); break;
             case SPACE: connection.commitText(" ", 1); break;
+            case INDENT: connection.commitText("    ", 1); break;
+            case TAB: connection.commitText("\t", 1); break;
+            case PAIR: CodeActions.pair(connection, value.text); break;
             case BACKSPACE:
                 CharSequence selected = connection.getSelectedText(0);
                 if (selected != null && selected.length() > 0) connection.commitText("", 1);

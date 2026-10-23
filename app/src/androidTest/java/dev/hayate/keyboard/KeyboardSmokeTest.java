@@ -22,7 +22,7 @@ public final class KeyboardSmokeTest extends Instrumentation {
     private KeyboardView keyboard;
     private int current;
     private int failures;
-    private static final int COUNT = 12;
+    private static final int COUNT = 21;
 
     @Override public void onCreate(Bundle arguments) { super.onCreate(arguments); start(); }
     @Override public void onStart() {
@@ -110,6 +110,93 @@ public final class KeyboardSmokeTest extends Instrumentation {
             if (!clicked) throw new AssertionError("No tappable x alternative");
             waitForIdleSync(); ui(() -> expect("x"));
         });
+        test("suggestionReplacesWholeWordAndRejectsStaleContext", () -> ui(() -> {
+            reset(); editor.setText("say helo!"); editor.setSelection(7);
+            android.view.inputmethod.InputConnection connection = editor.onCreateInputConnection(new EditorInfo());
+            SuggestionController.Snapshot snapshot = SuggestionController.capture(connection);
+            if (!SuggestionController.apply(connection, snapshot, "hello")) throw new AssertionError("Candidate not applied");
+            expect("say hello!");
+            editor.setSelection(0);
+            if (SuggestionController.apply(connection, snapshot, "help")) throw new AssertionError("Stale candidate applied");
+            expect("say hello!");
+        }));
+        test("programmerPairsWrapSelectionAndIndent", () -> ui(() -> {
+            reset(); editor.setText("😀name"); editor.setSelection(2, 6);
+            EditorInfo info = new EditorInfo(); android.view.inputmethod.InputConnection connection = editor.onCreateInputConnection(info);
+            InputActions.execute(connection, info, new KeySpec.Value(KeySpec.Kind.PAIR, "()", "()"), "()");
+            expect("😀(name)");
+            if (editor.getSelectionStart() != 7) throw new AssertionError("Pair cursor offset wrong");
+            editor.setText(""); editor.setSelection(0);
+            InputActions.execute(connection, info, KeySpec.action(KeySpec.Kind.INDENT, "4 spaces"), ""); expect("    ");
+        }));
+        test("passwordAndNoSuggestionsPolicy", () -> ui(() -> {
+            EditorInfo info = new EditorInfo(); info.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD;
+            if (!EditorPolicy.privateField(info) || EditorPolicy.suggestions(info)) throw new AssertionError("Password policy failed");
+            info.inputType = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS;
+            if (EditorPolicy.suggestions(info)) throw new AssertionError("NO_SUGGESTIONS ignored");
+        }));
+        test("clipboardUsesPlatformAndExcludesSensitiveHistory", () -> ui(() -> {
+            android.content.ClipboardManager manager = getTargetContext().getSystemService(android.content.ClipboardManager.class);
+            Preferences preferences = new Preferences(getTargetContext()); preferences.recentClips(true);
+            ClipboardShelf shelf = new ClipboardShelf(getTargetContext(), () -> { }); shelf.start();
+            manager.setPrimaryClip(android.content.ClipData.newPlainText("test", "copied snippet"));
+            shelf.capture();
+            if (!shelf.clips().contains("copied snippet")) throw new AssertionError("Platform clip missing");
+            reset(); editor.onCreateInputConnection(new EditorInfo()).commitText(shelf.clips().get(0), 1); expect("copied snippet");
+            android.content.ClipData secret = android.content.ClipData.newPlainText("test", "hidden secret");
+            android.os.PersistableBundle extras = new android.os.PersistableBundle(); extras.putBoolean("android.content.extra.IS_SENSITIVE", true);
+            secret.getDescription().setExtras(extras); manager.setPrimaryClip(secret); shelf.capture();
+            if (shelf.clips().contains("hidden secret")) throw new AssertionError("Sensitive clip retained");
+            shelf.clear(); shelf.stop(); preferences.recentClips(false);
+        }));
+        test("programmerToggleKeepsLetterFlicksAndStraightQuotes", () -> ui(() -> {
+            reset(); ((ViewGroup) keyboard.getChildAt(0)).getChildAt(5).performClick();
+            key(0, 4, 0, 32); key(2, 4, -32, 0); expect("'\"");
+            key(2, 3, -32, 0); expect("'\"h");
+            ((ViewGroup) keyboard.getChildAt(0)).getChildAt(5).performClick();
+        }));
+        test("visibleSuggestionCompletesTypedWord", () -> {
+            ui(() -> { reset(); key(2, 3, 0, -32); key(1, 1, 0, 32); key(0, 3, 0, 0); key(1, 3, 0, 32); key(0, 3, 32, 0); expect("wurld"); });
+            boolean[] clicked = {false}; long deadline = SystemClock.uptimeMillis() + 5000;
+            while (!clicked[0] && SystemClock.uptimeMillis() < deadline) {
+                ui(() -> {
+                    android.widget.TextView hello = findText(keyboard, "world");
+                    if (hello != null) { hello.performClick(); clicked[0] = true; }
+                });
+                if (!clicked[0]) SystemClock.sleep(100);
+            }
+            if (!clicked[0]) {
+                ui(() -> {
+                    ViewGroup row = (ViewGroup) keyboard.getChildAt(1); StringBuilder labels = new StringBuilder();
+                    for (int i = 0; i < row.getChildCount(); i++) if (row.getChildAt(i) instanceof android.widget.TextView) labels.append(((android.widget.TextView) row.getChildAt(i)).getText()).append("|");
+                    throw new AssertionError("Offline world suggestion did not appear; row=" + labels);
+                });
+            }
+            ui(() -> expect("world "));
+        });
+        test("programmerShortcutRowPairsAndContinuesIndent", () -> ui(() -> {
+            reset(); ((ViewGroup) keyboard.getChildAt(0)).getChildAt(5).performClick();
+            editor.setText("if (ok) {"); editor.setSelection(editor.length()); key(2, 5, 0, 0); expect("if (ok) {\n    ");
+            android.widget.TextView pair = findText(keyboard, "()");
+            if (pair == null) throw new AssertionError("Pair shortcut missing"); pair.performClick(); expect("if (ok) {\n    ()");
+            if (editor.getSelectionStart() != 15) throw new AssertionError("Cursor must be inside pair");
+            ((ViewGroup) keyboard.getChildAt(0)).getChildAt(5).performClick();
+        }));
+        test("pairPreservesSelectionWhenSelectedTextQueryIsUnsupported", () -> ui(() -> {
+            reset(); editor.setText("name"); editor.setSelection(0, 4);
+            android.view.inputmethod.InputConnection base = editor.onCreateInputConnection(new EditorInfo());
+            android.view.inputmethod.InputConnection partial = new android.view.inputmethod.InputConnectionWrapper(base, false) {
+                @Override public CharSequence getSelectedText(int flags) { return null; }
+            };
+            InputActions.execute(partial, new EditorInfo(), new KeySpec.Value(KeySpec.Kind.PAIR, "()", "()"), "()");
+            expect("(name)");
+        }));
+        test("leavingProgrammerModeRestoresEditorCapitalization", () -> ui(() -> {
+            reset(); editor.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+            ((ViewGroup) keyboard.getChildAt(0)).getChildAt(5).performClick(); key(0, 2, 0, 0); expect("e");
+            editor.setText(""); editor.setSelection(0);
+            ((ViewGroup) keyboard.getChildAt(0)).getChildAt(5).performClick(); key(0, 2, 0, 0); expect("E");
+        }));
         Bundle result = new Bundle(); result.putString("stream", "\nHayate: " + current + " device tests, " + failures + " failures.\n");
         finish(Activity.RESULT_OK, result);
     }
@@ -132,6 +219,14 @@ public final class KeyboardSmokeTest extends Instrumentation {
         }
         return null;
     }
+    private android.widget.TextView findText(ViewGroup root, String text) {
+        for (int i = 0; i < root.getChildCount(); i++) {
+            View child = root.getChildAt(i);
+            if (child instanceof android.widget.TextView && text.contentEquals(((android.widget.TextView) child).getText())) return (android.widget.TextView) child;
+            if (child instanceof ViewGroup) { android.widget.TextView found = findText((ViewGroup) child, text); if (found != null) return found; }
+        }
+        return null;
+    }
     private void reset() {
         editor.setSingleLine(false); editor.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
         editor.setOnEditorActionListener(null); editor.setText(""); editor.requestFocus();
@@ -142,8 +237,9 @@ public final class KeyboardSmokeTest extends Instrumentation {
             keyboard.measure(View.MeasureSpec.makeMeasureSpec(keyboard.getWidth(), View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
             keyboard.layout(keyboard.getLeft(), keyboard.getTop(), keyboard.getRight(), keyboard.getTop() + keyboard.getMeasuredHeight());
         }
-        ViewGroup line = (ViewGroup) keyboard.getChildAt(row + 1); View tile = line.getChildAt(col);
-        return new float[]{line.getLeft() + tile.getLeft() + tile.getWidth() / 2f, line.getTop() + tile.getTop() + tile.getHeight() / 2f};
+        ViewGroup body = (ViewGroup) keyboard.getChildAt(2);
+        ViewGroup line = (ViewGroup) body.getChildAt(row); View tile = line.getChildAt(col);
+        return new float[]{body.getLeft() + line.getLeft() + tile.getLeft() + tile.getWidth() / 2f, body.getTop() + line.getTop() + tile.getTop() + tile.getHeight() / 2f};
     }
     private void key(int row, int col, int dxDp, int dyDp) {
         float[] p = point(row, col); float density = getTargetContext().getResources().getDisplayMetrics().density;

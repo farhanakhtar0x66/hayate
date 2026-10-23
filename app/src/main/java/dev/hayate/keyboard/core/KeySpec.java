@@ -1,7 +1,7 @@
 package dev.hayate.keyboard.core;
 
 public final class KeySpec {
-    public enum Kind { TEXT, SPACE, BACKSPACE, RETURN, SHIFT, LAYER, LEFT, RIGHT, UP, DOWN, HOME, END, SELECT_ALL, CUT, COPY, PASTE, UNDO, REDO, SETTINGS, NEXT_KEYBOARD }
+    public enum Kind { TEXT, SPACE, BACKSPACE, RETURN, SHIFT, LAYER, LEFT, RIGHT, UP, DOWN, HOME, END, SELECT_ALL, CUT, COPY, PASTE, UNDO, REDO, SETTINGS, NEXT_KEYBOARD, PAIR, INDENT, TAB, TOGGLE_CODE, CLIPBOARD }
     public static final class Value {
         public final Kind kind;
         public final String text;

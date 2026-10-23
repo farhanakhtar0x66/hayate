@@ -14,11 +14,23 @@ import dev.hayate.keyboard.core.KeySpec;
 import dev.hayate.keyboard.core.KeyboardState;
 
 public final class HayateIme extends InputMethodService {
+    private static java.lang.ref.WeakReference<HayateIme> live = new java.lang.ref.WeakReference<>(null);
     private final KeyboardState state = new KeyboardState();
     private KeyboardView keyboard;
+    private KeyboardSession session;
+
+    @Override public void onCreate() { super.onCreate(); live = new java.lang.ref.WeakReference<>(this); }
+    static void hideForPractice() {
+        HayateIme ime = live.get();
+        if (ime != null) ime.requestHideSelf(0);
+    }
 
     @Override public View onCreateInputView() {
-        keyboard = new KeyboardView(this, state, this::onAction);
+        if (session != null) session.stop();
+        session = new KeyboardSession(this, state, this::getCurrentInputConnection, this::getCurrentInputEditorInfo,
+            () -> startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)),
+            () -> ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).showInputMethodPicker());
+        keyboard = session.keyboard;
         if (Build.VERSION.SDK_INT >= 30) {
             Palette palette = new Palette(this, new Preferences(this));
             View decor = getWindow().getWindow().getDecorView();
@@ -44,6 +56,7 @@ public final class HayateIme extends InputMethodService {
 
     @Override public void onStartInput(EditorInfo attribute, boolean restarting) {
         super.onStartInput(attribute, restarting);
+        if (session != null) session.stop();
         state.shift = KeyboardState.Shift.OFF;
         int type = attribute.inputType & InputType.TYPE_MASK_CLASS;
         state.layer = type == InputType.TYPE_CLASS_NUMBER || type == InputType.TYPE_CLASS_PHONE || type == InputType.TYPE_CLASS_DATETIME
@@ -56,28 +69,17 @@ public final class HayateIme extends InputMethodService {
         setInputView(onCreateInputView());
         keyboard.setReturnLabel(returnLabel(info));
         syncCaps();
+        session.start();
     }
 
     @Override public boolean onEvaluateFullscreenMode() { return false; }
 
-    private void onAction(KeySpec.Value value) {
-        if (value.kind == KeySpec.Kind.LAYER) {
-            state.switchLayer(KeyboardState.Layer.valueOf(value.text)); keyboard.rebuild(); return;
-        }
-        if (value.kind == KeySpec.Kind.SHIFT) { state.toggleShift(); keyboard.refresh(); return; }
-        if (value.kind == KeySpec.Kind.SETTINGS) {
-            startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)); return;
-        }
-        if (value.kind == KeySpec.Kind.NEXT_KEYBOARD) {
-            ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).showInputMethodPicker(); return;
-        }
-        InputActions.execute(getCurrentInputConnection(), getCurrentInputEditorInfo(), value, state.output(value));
-        keyboard.refresh();
-    }
+    @Override public void onFinishInputView(boolean finishingInput) { if (session != null) session.stop(); super.onFinishInputView(finishingInput); }
+    @Override public void onDestroy() { if (session != null) session.stop(); if (live.get() == this) live.clear(); super.onDestroy(); }
 
     private void syncCaps() {
         EditorInfo info = getCurrentInputEditorInfo();
-        if (info == null || getCurrentInputConnection() == null || state.shift == KeyboardState.Shift.LOCK) return;
+        if (info == null || getCurrentInputConnection() == null || state.programmer || state.shift == KeyboardState.Shift.LOCK) return;
         if ((info.inputType & InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_TEXT &&
             (info.inputType & (InputType.TYPE_TEXT_FLAG_CAP_SENTENCES | InputType.TYPE_TEXT_FLAG_CAP_WORDS | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS)) != 0) {
             state.shift = getCurrentInputConnection().getCursorCapsMode(info.inputType) == 0 ? KeyboardState.Shift.OFF : KeyboardState.Shift.ON;
@@ -88,6 +90,7 @@ public final class HayateIme extends InputMethodService {
     @Override public void onUpdateSelection(int oldStart, int oldEnd, int newStart, int newEnd, int candidatesStart, int candidatesEnd) {
         super.onUpdateSelection(oldStart, oldEnd, newStart, newEnd, candidatesStart, candidatesEnd);
         syncCaps();
+        if (session != null) session.update();
     }
 
     private String returnLabel(EditorInfo info) {

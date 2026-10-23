@@ -14,4 +14,8 @@ final class Preferences {
     void threshold(int dp) { values.edit().putInt("threshold", dp).apply(); }
     int height() { return values.getInt("height", 78); }
     void height(int dp) { values.edit().putInt("height", dp).apply(); }
+    boolean suggestions() { return values.getBoolean("suggestions", true); }
+    void suggestions(boolean enabled) { values.edit().putBoolean("suggestions", enabled).apply(); }
+    boolean recentClips() { return values.getBoolean("recentClips", false); }
+    void recentClips(boolean enabled) { values.edit().putBoolean("recentClips", enabled).apply(); }
 }

@@ -14,6 +14,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.PopupWindow;
 import android.widget.Button;
+import android.widget.HorizontalScrollView;
+import android.widget.ScrollView;
+import java.util.List;
+import java.util.function.Consumer;
 import dev.hayate.keyboard.core.Flick;
 import dev.hayate.keyboard.core.KeySpec;
 import dev.hayate.keyboard.core.KeyboardState;
@@ -31,6 +35,10 @@ final class KeyboardView extends LinearLayout {
     private final ArrayList<TextView> tabs = new ArrayList<>();
     private boolean suppressPointers;
     private String returnLabel = "↵";
+    private LinearLayout accessory, body;
+    private ClipboardShelf shelf;
+    private Consumer<String> pasteClip;
+    private Runnable pasteSensitive;
     private final Typeface regular = Typeface.create("sans-serif", Typeface.NORMAL);
     private final Typeface medium = Typeface.create("sans-serif-medium", Typeface.NORMAL);
 
@@ -63,6 +71,15 @@ final class KeyboardView extends LinearLayout {
             toolbar.addView(tab, new LinearLayout.LayoutParams(0, dp(44), 1)); tabs.add(tab);
         }
         addView(toolbar, new LinearLayout.LayoutParams(-1, dp(44)));
+        TextView code = tool("</>", () -> listener.onAction(KeySpec.action(KeySpec.Kind.TOGGLE_CODE, "Code")));
+        code.setContentDescription("Toggle programmer mode"); toolbar.addView(code, new LinearLayout.LayoutParams(0, dp(44), 1)); tabs.add(code);
+        TextView clipboard = tool("Clips", () -> listener.onAction(KeySpec.action(KeySpec.Kind.CLIPBOARD, "Clipboard")));
+        clipboard.setContentDescription("Open clipboard"); toolbar.addView(clipboard, new LinearLayout.LayoutParams(0, dp(44), 1)); tabs.add(clipboard);
+        accessory = new LinearLayout(getContext());
+        addView(accessory, new LinearLayout.LayoutParams(-1, dp(42)));
+        body = new LinearLayout(getContext()); body.setOrientation(VERTICAL);
+        addView(body, new LinearLayout.LayoutParams(-1, -2));
+        if (shelf != null) { renderClipboard(); refresh(); return; }
         for (KeySpec[] row : Layouts.rows(state.layer)) {
             LinearLayout line = new LinearLayout(getContext());
             for (KeySpec key : row) {
@@ -73,20 +90,100 @@ final class KeyboardView extends LinearLayout {
             }
             int height = preferences.height();
             if (getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) height = Math.min(height, 60);
-            addView(line, new LinearLayout.LayoutParams(-1, dp(height)));
+            body.addView(line, new LinearLayout.LayoutParams(-1, dp(height)));
         }
+        showSuggestions(java.util.Collections.emptyList(), ignored -> { });
         refresh();
     }
 
     void refresh() {
         for (int i = 0; i < tabs.size(); i++) {
             TextView tab = tabs.get(i);
-            boolean selected = i == state.layer.ordinal();
+            boolean selected = i < 5 && (i == state.layer.ordinal() || i == 2 && state.layer == KeyboardState.Layer.CODE)
+                || i == 5 && state.programmer || i == 6 && shelf != null;
             tab.setTextColor(selected ? palette.ink : palette.muted);
             tab.setSelected(selected);
             tab.setBackground(selected ? MainActivity.rounded(palette.control, dp(12)) : null);
         }
         for (Tile tile : tiles) { tile.updateDescription(); tile.invalidate(); }
+    }
+
+    private TextView tool(String label, Runnable action) {
+        TextView button = new TextView(getContext()); button.setText(label); button.setTextSize(13);
+        button.setTextColor(palette.ink); button.setGravity(android.view.Gravity.CENTER);
+        button.setTypeface(medium); button.setPadding(dp(4), 0, dp(4), 0);
+        button.setSingleLine(true); button.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        button.setFocusable(true); button.setOnClickListener(v -> action.run());
+        button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
+            @Override public void onInitializeAccessibilityNodeInfo(View view, AccessibilityNodeInfo info) {
+                super.onInitializeAccessibilityNodeInfo(view, info); info.setClassName("android.widget.Button");
+            }
+        });
+        return button;
+    }
+    void showSuggestions(List<String> words, Consumer<String> choose) {
+        if (shelf != null) return;
+        accessory.removeAllViews();
+        if (state.programmer) {
+            HorizontalScrollView scroll = new HorizontalScrollView(getContext()); scroll.setHorizontalScrollBarEnabled(false);
+            LinearLayout tools = new LinearLayout(getContext());
+            addTool(tools, "4 sp", KeySpec.action(KeySpec.Kind.INDENT, "4 spaces"));
+            addTool(tools, "Tab", KeySpec.action(KeySpec.Kind.TAB, "Tab"));
+            for (String pair : new String[]{"()", "{}", "[]", "\"\"", "''", "``"}) addTool(tools, pair, new KeySpec.Value(KeySpec.Kind.PAIR, pair, pair));
+            addTool(tools, "Home", KeySpec.action(KeySpec.Kind.HOME, "Home")); addTool(tools, "End", KeySpec.action(KeySpec.Kind.END, "End"));
+            scroll.addView(tools); accessory.addView(scroll, new LinearLayout.LayoutParams(-1, -1));
+        } else if (words.isEmpty()) {
+            TextView hint = tool(preferences.suggestions() ? "Offline suggestions · English" : "Flick to type", () -> { });
+            hint.setTextColor(palette.muted); hint.setTextSize(11); hint.setClickable(false); hint.setFocusable(false);
+            accessory.addView(hint, new LinearLayout.LayoutParams(-1, -1));
+        } else for (String word : words) {
+            TextView candidate = tool(word, () -> choose.accept(word)); candidate.setContentDescription("Use suggestion " + word);
+            accessory.addView(candidate, new LinearLayout.LayoutParams(0, -1, 1));
+        }
+    }
+    private void addTool(LinearLayout row, String label, KeySpec.Value action) {
+        TextView button = tool(label, () -> listener.onAction(action));
+        button.setContentDescription(action.kind == KeySpec.Kind.PAIR ? "Insert pair " + label : action.label);
+        row.addView(button, new LinearLayout.LayoutParams(dp(48), dp(42)));
+    }
+    void showClipboard(ClipboardShelf shelf, Consumer<String> paste, Runnable sensitivePaste) {
+        this.shelf = shelf; pasteClip = paste; pasteSensitive = sensitivePaste; rebuild();
+    }
+    void closeClipboard() { shelf = null; rebuild(); }
+    private void renderClipboard() {
+        accessory.removeAllViews();
+        accessory.addView(tool("‹ Keys", () -> listener.onAction(KeySpec.action(KeySpec.Kind.CLIPBOARD, "Clipboard"))), new LinearLayout.LayoutParams(0, -1, 1));
+        accessory.addView(tool("Clipboard", () -> { }), new LinearLayout.LayoutParams(0, -1, 2));
+        accessory.addView(tool("Clear", shelf::clear), new LinearLayout.LayoutParams(0, -1, 1));
+        ScrollView scroll = new ScrollView(getContext()); LinearLayout clips = new LinearLayout(getContext()); clips.setOrientation(VERTICAL);
+        TextView remember = tool(preferences.recentClips() ? "Recent clips on · tap to turn off" : "Keep recent clips · off", () -> {
+            preferences.recentClips(!preferences.recentClips()); shelf.capture();
+        });
+        remember.setTextSize(12); remember.setTextColor(palette.muted); clips.addView(remember, new LinearLayout.LayoutParams(-1, dp(44)));
+        if (shelf.sensitive()) {
+            TextView secret = tool("Paste sensitive clip · preview hidden", pasteSensitive);
+            clips.addView(secret, new LinearLayout.LayoutParams(-1, dp(52)));
+        }
+        List<String> contents = shelf.clips();
+        if (contents.isEmpty() && !shelf.sensitive()) {
+            TextView empty = tool("Copy some text to get started", () -> { }); empty.setTextColor(palette.muted);
+            clips.addView(empty, new LinearLayout.LayoutParams(-1, dp(56)));
+        }
+        for (String clip : contents) {
+            LinearLayout row = new LinearLayout(getContext()); row.setPadding(dp(4), dp(3), dp(4), dp(3));
+            TextView preview = tool(clip, () -> pasteClip.accept(clip)); preview.setSingleLine(false); preview.setMaxLines(2);
+            preview.setGravity(android.view.Gravity.CENTER_VERTICAL); preview.setPadding(dp(12), dp(6), dp(12), dp(6));
+            preview.setBackground(MainActivity.rounded(palette.surface, dp(10))); preview.setContentDescription("Paste " + clip);
+            row.addView(preview, new LinearLayout.LayoutParams(0, dp(56), 1));
+            TextView remove = tool("×", () -> shelf.remove(clip)); remove.setContentDescription("Remove clip");
+            row.addView(remove, new LinearLayout.LayoutParams(dp(44), dp(56))); clips.addView(row);
+        }
+        TextView notice = tool("Recent clips expire after 1 hour.\nThe current clip follows Android’s clipboard.", () -> { });
+        notice.setSingleLine(false); notice.setTextSize(11); notice.setTextColor(palette.muted); notice.setClickable(false);
+        clips.addView(notice, new LinearLayout.LayoutParams(-1, dp(52))); scroll.addView(clips);
+        int height = preferences.height();
+        if (getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) height = Math.min(height, 60);
+        body.addView(scroll, new LinearLayout.LayoutParams(-1, dp(height * 3)));
     }
 
     @Override public boolean dispatchTouchEvent(MotionEvent event) {
@@ -135,10 +232,11 @@ final class KeyboardView extends LinearLayout {
 
         private String display(KeySpec.Value v) {
             if (v == null) return "";
-            if (v.kind == KeySpec.Kind.RETURN) return returnLabel;
+            if (v.kind == KeySpec.Kind.RETURN) return state.programmer ? "↵" : returnLabel;
             if (v.kind == KeySpec.Kind.SHIFT) return state.shift == KeyboardState.Shift.LOCK ? "⇪" : "⇧";
-            if (v.kind == KeySpec.Kind.TEXT && state.shift != KeyboardState.Shift.OFF) return v.label.toUpperCase(Locale.ROOT);
-            return v.label;
+            String label = state.programmer ? CodeActions.straight(v.label) : v.label;
+            if (v.kind == KeySpec.Kind.TEXT && state.shift != KeyboardState.Shift.OFF) return label.toUpperCase(Locale.ROOT);
+            return label;
         }
 
         void updateDescription() {
