@@ -1,4 +1,4 @@
-# Hayate 0.1.0 validation
+# Hayate 0.1.1 validation
 
 Verified on 24 October 2026 (Asia/Kolkata).
 
@@ -26,7 +26,7 @@ The unit tests cover all 26 letters, the supplied example flicks, direction thre
 
 Both review regressions were confirmed with a mutation run: reverting grapheme movement and disabling physical long press produced exactly two failures out of twelve. Restoring the fixes produced twelve passes. The popup was also checked with real pointer input and used to commit x.
 
-The signed release was checked outside the practice area. System navigation controls have separate space below the bottom key row, including after theme and orientation changes. The setup status refreshes when the keyboard picker closes.
+The signed release was checked outside the practice area. System navigation controls have separate space below the bottom key row, including after theme and orientation changes. The setup status refreshes when the keyboard picker closes. Patch 0.1.1 makes the practice window independent of Android’s IME, so returning from another app cannot put the system keyboard over its local keyboard.
 
 Environment: macOS arm64; JDK 21; Gradle 9.5.0; AGP 9.2.1; compile/target API 36. Android emulator: API 37 / Android 17, arm64 16 KB-page Google Play image, 1080 × 2400 portrait / 2400 × 1080 landscape at 420 dpi. Transient ADB transport and signed/debug installation conflicts were resolved before the final passing run.
 
@@ -37,9 +37,9 @@ Physical devices, Android 8–16 hardware, TalkBack end-to-end navigation, batte
 SHA-256 of the shipped APK:
 
 ```text
-9044055ffc1f8cfecc1cf59e5a35192936e2ceebb6ca1cadab954a8400fdb691
+941cf46e4c00fec99ee2e2d7b63dd00c63050708fc458d2d84800f3da87a4830
 ```
 
 Screenshots: [setup](screenshots/setup.png), [light keyboard](screenshots/keyboard-light.png), [dark keyboard](screenshots/keyboard-dark.png), [landscape](screenshots/keyboard-landscape.png).
 
-Published to the private [GitHub repository](https://github.com/farhanakhtar0x66/hayate). [Release v0.1.0](https://github.com/farhanakhtar0x66/hayate/releases/tag/v0.1.0) contains the signed APK and checksum; the uploaded asset digest matches the local SHA-256 above.
+Published to the private [GitHub repository](https://github.com/farhanakhtar0x66/hayate). [Release v0.1.1](https://github.com/farhanakhtar0x66/hayate/releases/tag/v0.1.1) contains the signed APK and checksum; the uploaded asset digest matches the local SHA-256 above.

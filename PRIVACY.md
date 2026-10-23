@@ -1,6 +1,6 @@
 # Hayate privacy
 
-Hayate 0.1.0 runs locally. Its manifest does not request the INTERNET permission.
+Hayate 0.1.1 runs locally. Its manifest does not request the INTERNET permission.
 
 Hayate does not collect, save, transmit, learn from, or log text you type, including passwords. The practice field is kept only in the current activity’s memory and is not saved to disk. No analytics, advertising, account, telemetry, or crash-reporting SDK is included.
 

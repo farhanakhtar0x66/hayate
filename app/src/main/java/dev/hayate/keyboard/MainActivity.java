@@ -17,6 +17,7 @@ import android.view.ContextThemeWrapper;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputConnection;
 import android.view.inputmethod.InputMethodInfo;
@@ -42,6 +43,8 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Practice uses the embedded keyboard and a local InputConnection only.
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
         preferences = new Preferences(this);
     }
     @Override protected void onResume() { super.onResume(); render(); }
@@ -235,7 +238,7 @@ public final class MainActivity extends Activity {
         Switch haptics = new Switch(this); haptics.setText("Gentle haptics"); haptics.setTextSize(16); haptics.setTextColor(palette.ink);
         haptics.setChecked(preferences.haptics()); haptics.setOnCheckedChangeListener((view, checked) -> preferences.haptics(checked));
         panel.addView(haptics, new LinearLayout.LayoutParams(-1, dp(56)));
-        gap(panel, 8); panel.addView(text("Hayate 0.1.0\nNo network access. No typing history.\nEnglish directional flick keyboard.", 12, palette.muted));
+        gap(panel, 8); panel.addView(text("Hayate 0.1.1\nNo network access. No typing history.\nEnglish directional flick keyboard.", 12, palette.muted));
         AlertDialog settings = dialog().setTitle("Your Hayate").setView(panel).setPositiveButton("Done", null).create();
         settings.setOnDismissListener(ignored -> render()); settings.show();
     }

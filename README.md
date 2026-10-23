@@ -11,7 +11,7 @@ Hayate is a small, offline Android keyboard inspired by the HoneyKey Latin layou
 
 ## Install
 
-Download `hayate-0.1.0.apk` from [Releases](https://github.com/farhanakhtar0x66/hayate/releases).
+Download `hayate-0.1.1.apk` from [Releases](https://github.com/farhanakhtar0x66/hayate/releases).
 
 1. Install the APK on Android 8.0 or newer. Android may ask you to allow installation from your browser or file manager.
 2. Open **Hayate**, tap **Enable**, and enable Hayate in Android keyboard settings.
@@ -65,7 +65,7 @@ To sign an optimized release locally:
 ./scripts/sign-release.sh
 ```
 
-The script creates a private local signing key under `.signing/` on first use. **Keep a secure backup of that directory**: future APK updates must use the same key. It is excluded from Git. Output: `dist/hayate-0.1.0.apk`. CI builds debug and unsigned release artifacts; it does not receive the local signing key.
+The script creates a private local signing key under `.signing/` on first use. **Keep a secure backup of that directory**: future APK updates must use the same key. It is excluded from Git. Output: `dist/hayate-0.1.1.apk`. CI builds debug and unsigned release artifacts; it does not receive the local signing key.
 
 ## Design and scope
 

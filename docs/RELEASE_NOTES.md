@@ -1,6 +1,8 @@
-# Hayate 0.1.0
+# Hayate 0.1.1
 
-First usable Android build of Hayate, a minimal, offline directional flick keyboard inspired by HoneyKey Latin.
+Initial Android release of Hayate, a minimal, offline directional flick keyboard inspired by HoneyKey Latin.
+
+Patch 0.1.1 keeps Android’s system keyboard closed in the embedded practice area when returning from another app.
 
 - Six letter clusters with tap and cardinal flick entry.
 - Numbers, symbols, editing, and curated emoji layers.
@@ -9,7 +11,7 @@ First usable Android build of Hayate, a minimal, offline directional flick keybo
 - Light, dark and system themes; adjustable haptics, key height and flick distance.
 - No runtime dependencies, network permission, analytics or typing history.
 
-Install `hayate-0.1.0.apk`, open Hayate, enable it in Android settings, and choose it as your keyboard. Android 8.0 or newer is required.
+Install `hayate-0.1.1.apk`, open Hayate, enable it in Android settings, and choose it as your keyboard. Android 8.0 or newer is required.
 
 This prerelease is signed with a private local release key. It is an installable APK, not a Play Store publication. English flick typing is supported; QWERTY word-glide, prediction and autocorrect are not included.
 
