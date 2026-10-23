@@ -14,9 +14,9 @@
 Hayate <strong>(hah-yah-teh)</strong> · 颯 · ハヤテ<br>
 <a href="https://github.com/farhanakhtar0x66/hayate/releases/latest">Download for Android</a> · <a href="#type">Learn to flick</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 
-Hayate is a small, offline Android keyboard inspired by the HoneyKey Latin layout. Tap a large letter or flick toward a smaller one. It is a real Android input method, usable across apps.
+<p align="center">Hayate is a small, offline Android keyboard inspired by the HoneyKey Latin layout. Tap a large letter or flick toward a smaller one. It is a real Android input method, usable across apps.</p>
 
-<p>
+<p align="center">
 <img src="docs/screenshots/keyboard-light.png" width="260" alt="Hayate offline suggestions">
 <img src="docs/screenshots/programmer.png" width="260" alt="Hayate programmer mode">
 </p>

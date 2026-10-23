@@ -1,10 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360">
 <title>Hayate — hah-yah-teh — Swift as the wind.</title>
 <rect width="960" height="360" rx="28" fill="#1E1E2E"/>
+<g transform="translate(144 0)">
 <g transform="translate(92 116)"><rect width="108" height="108" rx="25" fill="#D8C6FA"/><path d="M29 35H44Q58 35 53 46L43 73M29 55H67Q80 55 80 43Q80 34 71 34M56 73H72" fill="none" stroke="#30263E" stroke-width="7" stroke-linecap="round"/></g>
 <g font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
 <text x="252" y="144" font-size="64" font-weight="700" letter-spacing="4" fill="#CDD6F4">HAYATE</text>
 <text x="254" y="200" font-size="29" fill="#9399B2">颯 · ハヤテ</text>
 <text x="254" y="244" font-size="22" fill="#A6ADC8">hah-yah-teh</text>
 <text x="254" y="290" font-size="26" fill="#7F849C">Swift as the wind.</text>
-</g></svg>
+</g></g></svg>
