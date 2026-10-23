@@ -41,3 +41,5 @@ SHA-256 of the shipped APK:
 ```
 
 Screenshots: [setup](screenshots/setup.png), [light keyboard](screenshots/keyboard-light.png), [dark keyboard](screenshots/keyboard-dark.png), [landscape](screenshots/keyboard-landscape.png).
+
+Published to the private [GitHub repository](https://github.com/farhanakhtar0x66/hayate). [Release v0.1.0](https://github.com/farhanakhtar0x66/hayate/releases/tag/v0.1.0) contains the signed APK and checksum; the uploaded asset digest matches the local SHA-256 above.
